@@ -1,0 +1,159 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+// Add this line to enable kapt, Dagger requires an annotation processor, and thus the main difference
+// is which one you are going to use. In fact with Java you used the Groovy methods apt or the newer annotationProcessor,
+// while with Kotlin you need to use kapt.
+apply plugin: 'kotlin-kapt'
+
+repositories {
+    flatDir {
+        dirs '../libs'
+    }
+}
+
+rootProject.version_name = gitVersionName
+rootProject.version_code = gitVersionCode
+println "Version Name From Tag : ${rootProject.version_name}"
+println "Version Code From Tag : ${rootProject.version_code}"
+
+
+android {
+
+    def config = rootProject.extensions.getByName("ext")
+
+
+    compileSdkVersion config["compile_sdk"]
+    buildToolsVersion '28.0.3'
+
+    defaultConfig {
+        applicationId config["application_id"]
+        minSdkVersion config["min_sdk"]
+        targetSdkVersion config["global_target_sdk"]
+        versionCode rootProject.version_code
+        versionName rootProject.version_name
+        testInstrumentationRunner config["test_runner"]
+    }
+
+    packagingOptions {
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/ASL2.0'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/LICENSE'
+    }
+
+    lintOptions {
+        quiet true
+        abortOnError false
+        ignoreWarnings true
+        disable 'InvalidPackage'            //Some libraries have issues with this.
+        disable 'OldTargetApi'
+        //Lint gives this warning but SDK 20 would be Android L Beta.
+        disable 'IconDensities'             //For testing purpose. This is safe to remove.
+        disable 'IconMissingDensityFolder'  //For testing purpose. This is safe to remove.
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('../buildsystem/keystore.dat')
+            storePassword 'scenichk@123'
+            keyAlias 'scenichk'
+            keyPassword 'scenichk@123'
+        }
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            debuggable = true
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            debuggable = false
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro', 'proguard.cfg'
+        }
+    }
+
+    testOptions {
+        unitTests{
+            returnDefaultValues = true
+            includeAndroidResources = true
+        }
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    def applicationDependencies = rootProject.ext.mainApplication
+    def unitTestDependencies = rootProject.ext.unitTesting
+    def acceptanceTestDependencies = rootProject.ext.acceptanceTesting
+
+    //Compile time dependencies
+    kapt applicationDependencies.daggerCompiler
+    kapt applicationDependencies.daggerAndroidProcessor
+    compileOnly applicationDependencies.javaxAnnotation
+
+    //Application dependencies
+    implementation applicationDependencies.kotlin
+    implementation applicationDependencies.appCompat
+    implementation applicationDependencies.kotlinKtx
+
+    implementation applicationDependencies.kotlinCoroutines
+    implementation applicationDependencies.kotlinCoroutinesAndroid
+
+    implementation applicationDependencies.constraintLayout
+    implementation applicationDependencies.dagger
+    implementation applicationDependencies.daggerSupport
+    implementation applicationDependencies.retrofit
+    implementation applicationDependencies.retrofitConverter
+    implementation applicationDependencies.okhttpLoggingInterceptor
+    implementation applicationDependencies.googleMaterial
+
+    implementation applicationDependencies.lifecycleExt
+
+    // Mapbox SDK
+    implementation applicationDependencies.mapboxSDk
+    implementation applicationDependencies.mapboxServices
+
+
+    //Unit/Integration tests dependencies
+    testImplementation unitTestDependencies.kotlin
+    testImplementation unitTestDependencies.kotlinTest
+    testImplementation unitTestDependencies.robolectric
+    testImplementation unitTestDependencies.junit
+    testImplementation unitTestDependencies.mockito
+    testImplementation unitTestDependencies.kluent
+
+    //Acceptance tests dependencies
+    androidTestImplementation acceptanceTestDependencies.testRunner
+    androidTestImplementation acceptanceTestDependencies.espressoCore
+
+
+//    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+
+//    Note: You might have mismatching Gradle dependencies once you add the Mapbox Maps SDK for Android. Don't forget that you can use exclude group like below, to remove certain dependencies:
+//
+//    implementation ('com.mapbox.mapboxsdk:mapbox-android-sdk:8.3.0'){
+//        exclude group: 'group_name', module: 'module_name'
+//    }
+}
+
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
+}

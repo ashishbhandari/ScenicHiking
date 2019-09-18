@@ -1,0 +1,16 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+}
+
+ext {
+    gitVersionName = '1.0' // replace with dynamic generated one
+    gitVersionCode = 1 // replace with dynamic generated one
+
+}
+
+task printVersion() {
+    println("Version Name: $gitVersionName")
+    println("Version Code: $gitVersionCode")
+}
